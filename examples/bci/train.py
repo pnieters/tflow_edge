@@ -19,7 +19,7 @@ async def experiment(targets=None, max_runs=None, repetitions=1, flash_time=0.4)
 
     # Create 5x6 grid of symbols
     grid_shape = (5,6)
-    g = Grid(*grid_shape, "bci/symbols.png", img_rows=5, img_cols=6, coords=((-1,1), (-1, -1)), space=0.5)
+    g = Grid(*grid_shape, "bci/symbols.png", img_rows=5, img_cols=6, coords=((-0.75,0.5), (0.75, -0.5)), space=0.5)
 
     if targets is None:
         targets = itertools.repeat(None)
@@ -36,7 +36,7 @@ async def experiment(targets=None, max_runs=None, repetitions=1, flash_time=0.4)
         pygame.display.flip()
         #</rendering>
 
-    pause = True
+    pause = False
     for target in itertools.islice(targets, max_runs):
 
         flashed=g.flash([],[])
@@ -95,7 +95,7 @@ async def experiment(targets=None, max_runs=None, repetitions=1, flash_time=0.4)
 
                 # record stimulus and target
                 experiment_state["flashed"] = flashed
-                experiment_state["target"] = target
+                experiment_state["target"] = None if not target else char_idx 
 
                 # sleep a while
                 await async_sleep(flash_time)
@@ -110,17 +110,17 @@ async def experiment(targets=None, max_runs=None, repetitions=1, flash_time=0.4)
     pygame.quit()
 
 def data_callback(data_in):
-    print experiment_state, data_in
+    print(experiment_state, data_in)
 
 
 async def run_experiment(addr, training_text="", **kwargs):
     async with Traumschreiber(addr=addr) as t:
         await t.start_listening(data_callback)
-        await experiment()
+        await experiment(**kwargs)
 
 def main(reactor):
     #d = defer.ensureDeferred(experiment("HALLO WELT"))
-    d = defer.ensureDeferred(run_experiment(None, training_text="HALLO WELT"))
+    d = defer.ensureDeferred(run_experiment(None, targets="HALLO WELT"))
     return d
 
 task.react(main)
