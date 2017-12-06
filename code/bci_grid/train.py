@@ -4,16 +4,31 @@ from twisted.internet import reactor, defer, task
 import itertools
 import random
 
-
+# This global variable (buh!) keeps track of the current state of the experiment
 experiment_state = {}
 
 def char2idx(char, grid_shape):
+    """ Finds a symbol in the symbol list and converts its position to grid coordinates"""
     symbols = "ABCDEFGHIJKLMNOPQRSTUVWXYZ !?."
     idx = symbols.index(char.upper())
     assert idx >= 0, "Character '{}' not in the list of allowed symbols ({})".format(char, symbols)
     return np.unravel_index(idx, grid_shape)
 
+# This is an asynchroneous co-routine for running the experiment itself
 async def experiment(targets=None, max_runs=None, repetitions=1, flash_time=0.4):
+    """ BCI - EEG decoding - Grid stimulus (COROUTINE)
+
+    A grid of symbols is shown on screen, rows and columns of which are randomly
+    highlighted (once each).
+
+    Args:
+        targets (str):      String of symbols to use as targets during stimulation. Defaults to no targets.
+                            When no targets are given, this can be used for testing predictions
+        max_runs (int):     Maximum number of runs to use. Defaults to no limit.
+        repetitions (int):  Number of repetitions to use per symbol. Defaults to 1 (no additional repetitions).
+                            For each repetition, each column and row of the grid will be highlighted exactly once.
+        flash_time (float): Time in seconds of each flashing each row/column. Defaults to 0,4s.
+    """
     global experiment_state
     width,height = boilerplate()
 
@@ -24,29 +39,40 @@ async def experiment(targets=None, max_runs=None, repetitions=1, flash_time=0.4)
     if targets is None:
         targets = itertools.repeat(None)
 
+    # Flash each row/column exactly once (per repetition)
     combinations = [("row", x) for x in range(grid_shape[0])] \
                  + [("col", x) for x in range(grid_shape[1])]
 
+    # Little helper function to do the actual rendering
     def render(draw_grid=True):
-        #<rendering/>
         glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT)
         if draw_grid:
             g.draw()
         glFlush()
         pygame.display.flip()
-        #</rendering>
+
+    # Little helper function to poll & parse the events triggered
+    def poll_events():
+        events = []
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT or (event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE):
+                pygame.quit()
+                events.append("QUIT")
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_SPACE:
+                    events.append("PAUSE")
+        return events
 
     pause = False
     for target in itertools.islice(targets, max_runs):
 
+        # Reset highlights and clear screen before each trial
         flashed=g.flash([],[])
-        # Clear screen before each trial
         render(False)
 
         # right now, there is neither a stimulus nor targets
         experiment_state["flashed"] = flashed
         experiment_state["target"] = None
-
         await async_sleep(2)
 
         # Set symbol to focus, if any
@@ -55,37 +81,32 @@ async def experiment(targets=None, max_runs=None, repetitions=1, flash_time=0.4)
             # Show the desired character
             g.symbols[char_idx[0], char_idx[1]].color=np.array([1.0,0.0,0.0,1.0])
 
+        # draw grid w/o any highlights
         render()
         await async_sleep(2)
 
+        # start repetitions
         repeat = repetitions
         while repeat>0:
+            # If it's currently paused, poll for events
             if pause:
                 # Poll event queue
-                for event in pygame.event.get():
-                    if event.type == pygame.QUIT or (event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE):
-                        pygame.quit()
-                        return
-                    if event.type == pygame.KEYDOWN:
-                        if event.key == pygame.K_SPACE:
-                            pause = not pause
-                            print("paused" if pause else "unpaused")
-                await async_sleep(1)
-                if pause:
+                events = poll_events()
+                if "QUIT" in events:
+                    return
+                if "PAUSE" in events:
+                    pause = False
+                    await async_sleep(1)
                     continue
 
             random.shuffle(combinations)
             for rowcol,num in combinations:
                 # Poll event queue
-                for event in pygame.event.get():
-                    if event.type == pygame.QUIT or (event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE):
-                        pygame.quit()
-                        return
-                    if event.type == pygame.KEYDOWN:
-                        if event.key == pygame.K_SPACE:
-                            pause = not pause
-                            print("paused" if pause else "unpaused")
-                if pause:
+                events = poll_events()
+                if "QUIT" in events:
+                    return
+                if "PAUSE" in events:
+                    pause = True
                     break
 
                 # Flash appropriate symbols
@@ -95,7 +116,7 @@ async def experiment(targets=None, max_runs=None, repetitions=1, flash_time=0.4)
 
                 # record stimulus and target
                 experiment_state["flashed"] = flashed
-                experiment_state["target"] = None if not target else char_idx 
+                experiment_state["target"] = None if not target else char_idx
 
                 # sleep a while
                 await async_sleep(flash_time)
@@ -106,7 +127,7 @@ async def experiment(targets=None, max_runs=None, repetitions=1, flash_time=0.4)
         if target is not None:
             g.symbols[char_idx[0], char_idx[1]].color=np.array([1.0,1.0,1.0,0.25])
 
-    clock = pygame.time.Clock()
+    # The experiment is done!
     pygame.quit()
 
 def data_callback(data_in):
