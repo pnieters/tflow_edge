@@ -21,8 +21,6 @@ ex_input = np.random.rand(x_size,y_size,z_size,T)
 ex_output = np.sum(np.exp(ex_input**5),0)
 ex_output = ex_output / np.linalg.norm(ex_output)
 
-# the graph
-
 # input & target
 input_ = tf.placeholder(dtype=tf.float32, shape=[x_size, y_size, z_size], name="input")
 target = tf.placeholder(dtype=tf.float32, shape=[1, out_size], name="target")
