@@ -4,7 +4,7 @@ import numpy as np
 
 # params
 batch_size = 1
-x_size = 8
+x_size = 5000
 y_size = 1
 z_size = 1
 

@@ -14,7 +14,7 @@ T = 100
 devices = mvnc.EnumerateDevices() # ...
 if len(devices) == 0:
     print('No devices found')
-    quit()
+    sys.exit()
 
 device = mvnc.Device(devices[0])
 device.OpenDevice()
@@ -27,8 +27,13 @@ graph = device.AllocateGraph(graphfile)
 inp_ = np.random.rand(x_size,y_size,z_size)
 inp_ = inp_.astype(np.float32)
 
-print('Start download to NCS...')
-graph.LoadTensor(inp_, 'user object')
-output, userobj = graph.GetResult()
+# print('Start download to NCS...')
+# graph.LoadTensor(inp_, 'user object')
+# output, userobj = graph.GetResult()
+#
+# print('Input: {} \t \t Output: {}'.format(inp_, output))
 
-print('Input: {} \t \t Output: {}'.format(inp_, output))
+def foo(input_, graph):
+    graph.LoadTensor(input_, 'user object')
+    output, userobj = graph.GetResult()
+    return output
