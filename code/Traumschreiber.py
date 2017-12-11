@@ -1,9 +1,10 @@
-import logging
-from twisted.internet import reactor, defer, task
-import txdbus as dbus
-from txdbus import client as dbus_client
 import asyncio
+import logging
 import struct
+import txdbus as dbus
+
+from twisted.internet import reactor, defer, task
+from txdbus import client as dbus_client
 
 def async_sleep(time):
     d = defer.Deferred()

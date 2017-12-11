@@ -1,10 +1,12 @@
+import asyncio
 import logging
 loglevel = logging.INFO
 logging.basicConfig(level=loglevel)
-from twisted.internet import reactor, defer, task
-import asyncio
-from Traumschreiber import *
 import numpy as np
+
+from Traumschreiber import *
+from twisted.internet import reactor, defer, task
+
 SHOWPLOT = True
 
 ########################################
