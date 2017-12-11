@@ -17,6 +17,11 @@ class Traumschreiber(object):
     def __init__(self, addr=None, scan=10):
         self.addr=addr
         self.scan=scan
+        self.a_on = 0
+        self.b_on = 0
+        self.color= (0,0,0)
+        self.gain = 1
+        self.misc= 0
 
     async def __aenter__(self):
         logging.info("Connecting...")
@@ -90,7 +95,7 @@ class Traumschreiber(object):
                     await self._find_object("org.bluez.GattCharacteristic1",
                         UUID=self.BIOSIGNALS_UUID)
                 await async_sleep(1)
-                self.leds_char, self.leds_char_props = \
+                self.cfg_char, self.leds_char_props = \
                     await self._find_object("org.bluez.GattCharacteristic1",
                         UUID=self.LEDS_UUID)
             except Exception as e:
@@ -106,7 +111,7 @@ class Traumschreiber(object):
 
         # set leds to ensure alignment of the command
         for i in range(7):
-            await self.set_leds()
+            await self.set()
         return self
 
     async def start_listening(self, callback):
@@ -168,6 +173,18 @@ class Traumschreiber(object):
         else:
             raise Exception("No matching object detected with interface {}{}".format(interface, "" if len(props)==0 else " (with properties: {})".format(props)))
 
-    async def set_leds(self, a_on=False, b_on=False, color=(255,255,255)):
-        ledval = [a_on<<1|b_on, color[0], color[1], color[2], 0, 0]#struct.pack("BBBBxx", (a_on<<1|b_on), color[0], color[1], color[2])
-        await self.leds_char.callRemote("WriteValue", ledval, {})
+    async def set(self, a_on=None, b_on=None, color=None, gain=None, misc=None):
+        if not a_on is None:
+            self.a_on = a_on
+        if not b_on is None:
+            self.b_on = b_on
+        if not color is None:
+            self.color = color
+        if not gain is None:
+            assert gain in [0.5]+[2**i for i in range(7)], "Gain must be one of the following: 0.5x, 1x, 2x, 4x, 8x, 16x, 32x, 64x (got {})".format(gain)
+            self.gain = 0b111 if gain < 1 else {1:0b000, 2:0b001, 4:0b010, 8:0b011, 16:0b100, 32:0b101,64:0b110}[gain]
+        if not misc is None:
+            self.misc = misc
+
+        val = [self.a_on<<1|self.b_on, self.color[0], self.color[1], self.color[2], self.gain, self.misc]
+        self.cfg_char.callRemote("WriteValue", val, {})
