@@ -9,7 +9,7 @@ SHOWPLOT = True
 
 ########################################
 # ID of the traumschreiber you are using
-ID = 6
+ID = 2
 ########################################
 
 GAIN = 16

@@ -11,10 +11,31 @@ def async_sleep(time):
     return d
 
 class Traumschreiber(object):
+    """ Traumschreiber EEG asynchronous context manager
+
+    Usage:
+
+        async with Traumschreiber(addr="74:72:61:75:6D:xx"):
+            # do some setup
+            # ...
+
+            # start listening to data and define a callback function to execute for each new data-point
+            await t.start_listening(data_callback)
+
+            # ...
+
+            # set device state, e.g. toggle one LED on, one off, set a red color and a gain of 8x
+            await t.set(a_on=1,b_on=1,color=(255,0,0), gain=8)
+
+            #...
+    """
     BIOSIGNALS_UUID = "faa7b588-19e5-f590-0545-c99f193c5c3e"
     LEDS_UUID = "fcbea85a-4d87-18a2-2141-0d8d2437c0a4"
 
     def __init__(self, addr=None, scan=10):
+        """ Scan for a given period (scan) and attempt to open a connection to the
+        Traumschreiber device with given Bluetooth-device address (addr)
+        """
         self.addr=addr
         self.scan=scan
         self.a_on = 0
@@ -115,17 +136,20 @@ class Traumschreiber(object):
         return self
 
     async def start_listening(self, callback):
+        """ Call this function to start listening to data packages from the device """
         logging.info("Start listening...")
         self._notifier = await self.biosignals_char_props.notifyOnSignal("PropertiesChanged", lambda _1,x,_2: callback(x["Value"]))
         await self.biosignals_char.callRemote("StartNotify")
 
     async def stop_listening(self):
+        """ Call this function to stop listening to data packages from the device """
         if self._notifier:
             logging.info("Stop listening...")
             self.biosignals_char_props.cancelSignalNotification(self._notifier)
             await self.biosignals_char.callRemote("StopNotify")
 
     async def disconnect_unpair_forget(self, disconnect=True, unpair=True, forget=True):
+        """ Disconnect and unpair the device (duh) """
         logging.warning("Disconnecting & unpairing...")
         if forget:
             try:
@@ -174,6 +198,14 @@ class Traumschreiber(object):
             raise Exception("No matching object detected with interface {}{}".format(interface, "" if len(props)==0 else " (with properties: {})".format(props)))
 
     async def set(self, a_on=None, b_on=None, color=None, gain=None, misc=None):
+        """ Set Traumschreiber device properties.
+
+        Args:
+            a_on (0 or 1):  turns LED 'a' on (1) or off (0), default: no change
+            b_on (0 or 1):  turns LED 'b' on (1) or off (0), default: no change
+            color:          sets the color of both LEDs to an RGB tuple of ints (0,0,0) < (r,g,b) < (255,255,255)
+            gain:           sets the gain of the Traumschreiber device's amplifier (½x,1x,2x,4x,8x,16x,32x,64x)
+        """
         if not a_on is None:
             self.a_on = a_on
         if not b_on is None:
