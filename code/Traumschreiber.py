@@ -3,6 +3,7 @@ import logging
 import struct
 import txdbus as dbus
 
+import numpy as np
 from twisted.internet import reactor, defer, task
 from txdbus import client as dbus_client
 
@@ -139,7 +140,15 @@ class Traumschreiber(object):
     async def start_listening(self, callback):
         """ Call this function to start listening to data packages from the device """
         logging.info("Start listening...")
-        self._notifier = await self.biosignals_char_props.notifyOnSignal("PropertiesChanged", lambda _1,x,_2: callback(x["Value"]))
+        def wrapped_callback(_1, data ,_2):
+            try:
+                if "Value" in data:
+                    np_data = np.frombuffer(np.array(data["Value"], dtype=np.int8), dtype=np.dtype('<i2')).reshape((1,8))
+                    callback(np_data)
+            except Exception as e:
+                logging.warning("Encountered exception in data callback method: {}".format(e))
+
+        self._notifier = await self.biosignals_char_props.notifyOnSignal("PropertiesChanged", wrapped_callback)
         await self.biosignals_char.callRemote("StartNotify")
 
     async def stop_listening(self):
@@ -207,17 +216,20 @@ class Traumschreiber(object):
             color:          sets the color of both LEDs to an RGB tuple of ints (0,0,0) < (r,g,b) < (255,255,255)
             gain:           sets the gain of the Traumschreiber device's amplifier (½x,1x,2x,4x,8x,16x,32x,64x)
         """
-        if not a_on is None:
-            self.a_on = a_on
-        if not b_on is None:
-            self.b_on = b_on
-        if not color is None:
-            self.color = color
-        if not gain is None:
-            assert gain in [0.5]+[2**i for i in range(7)], "Gain must be one of the following: 0.5x, 1x, 2x, 4x, 8x, 16x, 32x, 64x (got {})".format(gain)
-            self.gain = 0b111 if gain < 1 else {1:0b000, 2:0b001, 4:0b010, 8:0b011, 16:0b100, 32:0b101,64:0b110}[gain]
-        if not misc is None:
-            self.misc = misc
+        try:
+            if not a_on is None:
+                self.a_on = a_on
+            if not b_on is None:
+                self.b_on = b_on
+            if not color is None:
+                self.color = color
+            if not gain is None:
+                assert gain in [0.5]+[2**i for i in range(7)], "Gain must be one of the following: 0.5x, 1x, 2x, 4x, 8x, 16x, 32x, 64x (got {})".format(gain)
+                self.gain = 0b111 if gain < 1 else {1:0b000, 2:0b001, 4:0b010, 8:0b011, 16:0b100, 32:0b101,64:0b110}[gain]
+            if not misc is None:
+                self.misc = misc
 
-        val = [self.a_on<<1|self.b_on, self.color[0], self.color[1], self.color[2], self.gain, self.misc]
-        self.cfg_char.callRemote("WriteValue", val, {})
+            val = [self.a_on<<1|self.b_on, self.color[0], self.color[1], self.color[2], self.gain, self.misc]
+            self.cfg_char.callRemote("WriteValue", val, {})
+        except Exception as e:
+            logging.error("Raised exception {} in set method.".format(e))

@@ -14,7 +14,7 @@ SHOWPLOT = True
 ID = 2
 ########################################
 
-GAIN = 16
+GAIN = 1
 TRAUMSCHREIBER_ADDR = "74:72:61:75:6D:{:02x}".format(ID)
 
 duration=2500
@@ -23,9 +23,8 @@ data = np.zeros((duration,8), dtype='<i2')
 def data_callback(data_in):
     global data
     global cnt
-    new_data = np.frombuffer(np.array(data_in, dtype=np.int8), dtype=np.dtype('<i2')).reshape((1,8))
     data = np.roll(data, -1, axis=0)
-    data[-1,:] = new_data
+    data[-1,:] = data_in
     cnt += 1
 
 if SHOWPLOT:
@@ -33,12 +32,15 @@ if SHOWPLOT:
     matplotlib.use("TkAgg")
     from matplotlib import pyplot as pp
     def plot():
-        for i,line in enumerate(lines):
-            fig.canvas.restore_region(background[i])
-            line.set_data(tt, data[:,i])
-            ax[i].draw_artist(line)
-            #fig.canvas.set_window_title("Data (received {} packages/second)".format(pkgs_per_second))
-            fig.canvas.blit(ax[i].bbox)
+        try:
+            for i,line in enumerate(lines):
+                fig.canvas.restore_region(background[i])
+                line.set_data(tt, data[:,i])
+                ax[i].draw_artist(line)
+                #fig.canvas.set_window_title("Data (received {} packages/second)".format(pkgs_per_second))
+                fig.canvas.blit(ax[i].bbox)
+        except Exception as e:
+            print("Encountered exception in plot callback: {}".format(e))
 
 async def run():
     async with Traumschreiber(addr=TRAUMSCHREIBER_ADDR) as t:
@@ -58,6 +60,8 @@ async def run():
         await async_sleep(1)
         await t.set(a_on=0,b_on=0,color=(0,0,0))
         await async_sleep(50)
+        if SHOWPLOT:
+            plot()
 
 def main(reactor):
     d = defer.ensureDeferred(run())
