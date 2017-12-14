@@ -14,12 +14,13 @@ SHOWPLOT = True
 ID = 2
 ########################################
 
-GAIN = 1
+GAIN = 32
 TRAUMSCHREIBER_ADDR = "74:72:61:75:6D:{:02x}".format(ID)
 
 duration=2500
 cnt = 0
 data = np.zeros((duration,8), dtype='<i2')
+
 def data_callback(data_in):
     global data
     global cnt

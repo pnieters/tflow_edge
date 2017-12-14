@@ -4,8 +4,9 @@ from twisted.internet import reactor, defer, task
 import itertools
 import random
 
+
 # This module-level variable (buh!) keeps track of the current state of the experiment
-state = {}
+state = {"interval": 0}
 
 def char2idx(char, grid_shape):
     """ Finds a symbol in the symbol list and converts its position to grid coordinates"""
@@ -16,7 +17,7 @@ def char2idx(char, grid_shape):
 
 
 # This is an asynchroneous co-routine for running the experiment itself
-async def experiment(targets=None, max_runs=None, repetitions=1, flash_time=0.4):
+async def experiment(targets=None, max_runs=None, repetitions=12, flash_time=0.125):
     """ BCI - EEG decoding - Grid stimulus (COROUTINE)
 
     A grid of symbols is shown on screen, rows and columns of which are randomly
@@ -31,11 +32,12 @@ async def experiment(targets=None, max_runs=None, repetitions=1, flash_time=0.4)
         flash_time (float): Time in seconds of each flashing each row/column. Defaults to 0,4s.
     """
     global state
+
     width,height = boilerplate()
 
     # Create 5x6 grid of symbols
     grid_shape = (5,6)
-    g = Grid(*grid_shape, "bci_grid/symbols.png", img_rows=5, img_cols=6, coords=((-0.75,0.5), (0.75, -0.5)), space=0.5)
+    g = Grid(*grid_shape, "bci_grid/symbols.png", img_rows=5, img_cols=6, coords=((-0.25,0.25), (0.25, -0.25)), space=0.5)
 
     if targets is None:
         targets = itertools.repeat(None)
@@ -79,12 +81,17 @@ async def experiment(targets=None, max_runs=None, repetitions=1, flash_time=0.4)
         # Set symbol to focus, if any
         if target is not None:
             char_idx2d, char_idx = char2idx(target, grid_shape)
-            # Show the desired character
-            g.symbols[char_idx2d[0], char_idx2d[1]].color=np.array([1.0,0.0,0.0,1.0])
 
-        # draw grid w/o any highlights
-        render()
-        await async_sleep(2)
+            # Flash the symbol to focus on a couple of times
+            for i in range(10):
+                # draw grid w/ marked symbol but w/o any highlights
+                g.symbols[char_idx2d[0], char_idx2d[1]].color=np.array([1.0,0.0,0.0,1.0])
+                render()
+                await async_sleep(0.1)
+                # draw plain grid
+                g.symbols[char_idx2d[0], char_idx2d[1]].color=np.array([1.0,1.0,1.0,0.25])
+                render()
+                await async_sleep(0.1)
 
         # start repetitions
         repeat = repetitions
@@ -115,18 +122,24 @@ async def experiment(targets=None, max_runs=None, repetitions=1, flash_time=0.4)
                 # draw the grid
                 render()
 
-                # record stimulus and target
+                # record the current interval, stimulus and target
                 state["highlighted"] = flashed
                 state["target"] = None if not target else char_idx
+                state["interval"] += 1
 
                 # sleep a while
                 await async_sleep(flash_time)
+
+                # Stop flashing
+                flashed = g.flash(rows=[], cols=[])
+                # draw the grid
+                render()
+
+                # sleep a while
+                await async_sleep(flash_time/2)
+
             else:
                 repeat-=1
-
-        # Release focused symbol, if any
-        if target is not None:
-            g.symbols[char_idx2d[0], char_idx2d[1]].color=np.array([1.0,1.0,1.0,0.25])
 
     # The experiment is done!
     pygame.quit()

@@ -19,20 +19,27 @@ MAX_SAMPLES = 100000
 data_store = []
 data_idx = 0
 
+########################################
+# ID of the traumschreiber you are using
+ID = 2
+GAIN = 32
+########################################
+
+TRAUMSCHREIBER_ADDR = "74:72:61:75:6D:{:02x}".format(ID)
+
+
 def data_callback(data_in):
     global data_idx
-
-    new_data = np.frombuffer(np.array(data_in, dtype=np.int8), dtype=np.dtype('<i2')).reshape((8,))
-    inrow =  np.hstack((datetime.datetime.now(), new_data, state["highlighted"].ravel(), state["target"]))
+    inrow =  np.hstack((datetime.datetime.now(), data_in.ravel(), state["highlighted"].ravel(), state["interval"], state["target"]))
     data_store.append(inrow)
     data_idx += 1
 
 def data_save(ex):
-    print(data_store)
     df = pandas.DataFrame(data_store, columns=
         ["timestamp"] +
         ["channel{}".format(i) for i in range(8)] +
         ["highlighted{}".format(i) for i in range(30)]+
+        ["interval"] +
         ["target"]).set_index("timestamp")
 
     df.to_pickle("recording.pkl")
@@ -41,11 +48,14 @@ async def run_experiment(addr, training_text="", **kwargs):
     global db_ready
     async with Traumschreiber(addr=addr) as t:
         await t.start_listening(data_callback)
+        await t.set(gain=GAIN)
+        await t.set(gain=GAIN)
+        await t.set(gain=GAIN)
         await experiment(**kwargs)
         db_ready = False
 
 def main(reactor):
-    ex = defer.ensureDeferred(run_experiment(None, targets="HALLO WELT"))
+    ex = defer.ensureDeferred(run_experiment(TRAUMSCHREIBER_ADDR, targets="HALLO WELT"))
     ex.addCallback(data_save)
     return ex
 
