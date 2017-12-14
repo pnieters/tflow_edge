@@ -58,6 +58,6 @@ for t in range(T_TIMESTEPS):
     print("Input: {} \t \t Target: {} \t \t Result: {}".format(inp_[:,:,t], target[:,:,t], yhat))
     err += (yhat - target[:,:,t]) ** 2
 
-# RMSE = np.sqrt( 1/T_TIMESTEPS * err )
-# print("Average RMSE: {}".format(RMSE))
+RMSE = np.sqrt( 1/T_TIMESTEPS * err )
+print("Average RMSE: {}".format(RMSE))
 
