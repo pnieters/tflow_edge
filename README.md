@@ -1,4 +1,7 @@
-# weird compile errors:
+# TFLOW-EDGE
 
-## [Error 5] Toolkit Error: Stage Details Not Supported: BatchMatMul
-Batch Operations do not work, replace with MatMul to fix.
+This repository contains a collection of scripts and examples
+to get students started in an exploratory 2-week course using EEG
+signals from the low-cost 8-channel EEG device "Traumschreiber" and
+tensorflow neural network classifiers on the Intel(r) Movidius Neural
+Compute Stick.

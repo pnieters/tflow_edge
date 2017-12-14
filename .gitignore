@@ -1,3 +1,4 @@
 graph
 tmp/
-.ipynb_checkpoint/
+.ipynb_checkpoints/
+*/__pycache__/
