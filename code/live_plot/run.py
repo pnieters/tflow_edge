@@ -11,21 +11,26 @@ SHOWPLOT = True
 
 ########################################
 # ID of the traumschreiber you are using
-ID = 2
+ID = 3
 ########################################
 
 GAIN = 32
 TRAUMSCHREIBER_ADDR = "74:72:61:75:6D:{:02x}".format(ID)
 
+# reference channel
+REF_CHANNEL = 7
+
 duration=2500
 cnt = 0
-data = np.zeros((duration,8), dtype='<i2')
+data = np.zeros((duration,9), dtype='<i2')
 
 def data_callback(data_in):
     global data
     global cnt
+
     data = np.roll(data, -1, axis=0)
-    data[-1,:] = data_in
+    # data[-1,:] = data_in
+    data[-1,:] = reref_channels(data_in, REF_CHANNEL)
     cnt += 1
 
 if SHOWPLOT:
@@ -71,15 +76,15 @@ def main(reactor):
 
 if SHOWPLOT:
     # Plot lines
-    fig, ax = pp.subplots(nrows=8, ncols=1, figsize=(15,10), sharex=True, sharey=True)
+    fig, ax = pp.subplots(nrows=9, ncols=1, figsize=(15,10), sharex=True, sharey=True)
     fig.show()
     fig.canvas.draw()
 
     tt = np.arange(duration)
-    lines = [ax[i].plot(tt, data[:,i])[0] for i in range(8)]
-    hlines = [(ax[i].axhline(y=2**11, c="black"), ax[i].axhline(y=-2**11, c="black")) for i in range(8)]
+    lines = [ax[i].plot(tt, data[:,i])[0] for i in range(9)]
+    hlines = [(ax[i].axhline(y=2**11, c="black"), ax[i].axhline(y=-2**11, c="black")) for i in range(9)]
     ax[0].set_ylim([-2**12, 2**12])
-    background = [fig.canvas.copy_from_bbox(ax[i].bbox) for i in range(8)]
+    background = [fig.canvas.copy_from_bbox(ax[i].bbox) for i in range(9)]
     task.LoopingCall(plot).start(0.5)
 
 task.react(main)

@@ -1,4 +1,7 @@
 graph
 tmp/
 .ipynb_checkpoints/
+*/*/__pycache__/
 */__pycache__/
+__pycache__/
+*.pkl

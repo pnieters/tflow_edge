@@ -16,28 +16,32 @@ dbpool = None
 #3600s*250 = 900000 samples
 MAX_SAMPLES = 100000
 
+# reference channel
+REF_CHANNEL = 7
+
 data_store = []
 data_idx = 0
+# rData_in = np.zeros((1,9), dtype='<i2')
 
 ########################################
 # ID of the traumschreiber you are using
-ID = 2
+ID = 3
 GAIN = 32
 ########################################
 
 TRAUMSCHREIBER_ADDR = "74:72:61:75:6D:{:02x}".format(ID)
 
-
 def data_callback(data_in):
     global data_idx
-    inrow =  np.hstack((datetime.datetime.now(), data_in.ravel(), state["highlighted"].ravel(), state["interval"], state["target"]))
+
+    inrow =  np.hstack((datetime.datetime.now(), reref_channels(data_in, REF_CHANNEL), state["highlighted"].ravel(), state["interval"], state["target"]))
     data_store.append(inrow)
     data_idx += 1
 
 def data_save(ex):
     df = pandas.DataFrame(data_store, columns=
         ["timestamp"] +
-        ["channel{}".format(i) for i in range(8)] +
+        ["channel{}".format(i) for i in range(9)] +
         ["highlighted{}".format(i) for i in range(30)]+
         ["interval"] +
         ["target"]).set_index("timestamp")
@@ -55,7 +59,7 @@ async def run_experiment(addr, training_text="", **kwargs):
         db_ready = False
 
 def main(reactor):
-    ex = defer.ensureDeferred(run_experiment(TRAUMSCHREIBER_ADDR, targets="HALLO WELT"))
+    ex = defer.ensureDeferred(run_experiment(TRAUMSCHREIBER_ADDR, targets="ASDADMVKA"))
     ex.addCallback(data_save)
     return ex
 
