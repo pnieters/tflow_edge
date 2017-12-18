@@ -32,7 +32,7 @@ def data_save(ex):
         ["highlighted"]+
         ["interval"]).set_index("timestamp")
 
-    df.to_pickle("recording.pkl")
+    df.to_pickle("erp_test/recording.pkl")
 
 async def run_experiment(addr, training_text="", **kwargs):
     global db_ready
