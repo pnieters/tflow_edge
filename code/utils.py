@@ -166,7 +166,7 @@ def async_sleep(time):
 
 def reref_channels(data_in, electrode_id=1):
     """ rereference with respect to electrode `electrode_id` [1, ..., 9]"""
-    assert 1 <= electrod_id <= 9, "Electrode ID out of range. [1,...,9]"
+    assert 1 <= electrode_id <= 9, "Electrode ID out of range. [1,...,9]"
 
     cs = np.cumsum(np.hstack(([[0]],data_in)), 1)
     cs -= cs[0,electrode_id-1]
