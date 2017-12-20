@@ -7,4 +7,4 @@ tensorflow neural network classifiers on the Intel(r) Movidius Neural
 Compute Stick.
 
 
-*Note th: All code related to recording EEG requires a working [Traumschreiber](https://www.traumschreiber.uni-osnabrueck.de/) with up to date firmware*
+*Note: All code related to recording EEG requires a working [Traumschreiber](https://www.traumschreiber.uni-osnabrueck.de/) with up to date firmware*
