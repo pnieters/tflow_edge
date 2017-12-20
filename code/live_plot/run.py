@@ -7,18 +7,20 @@ import numpy as np
 from Traumschreiber import *
 from twisted.internet import reactor, defer, task
 
+from utils import reref_channels
+
 SHOWPLOT = True
 
 ########################################
 # ID of the traumschreiber you are using
-ID = 3
+ID = 4
 ########################################
 
-GAIN = 32
+GAIN = 16
 TRAUMSCHREIBER_ADDR = "74:72:61:75:6D:{:02x}".format(ID)
 
 # reference channel
-REF_CHANNEL = 7
+REF_CHANNEL = 5
 
 duration=2500
 cnt = 0
@@ -29,8 +31,8 @@ def data_callback(data_in):
     global cnt
 
     data = np.roll(data, -1, axis=0)
-    # data[-1,:] = data_in
-    data[-1,:] = reref_channels(data_in, REF_CHANNEL)
+    data[-1,:] = np.hstack(([[0]],data_in))
+    # data[-1,:] = reref_channels(data_in, REF_CHANNEL)
     cnt += 1
 
 if SHOWPLOT:
@@ -51,21 +53,22 @@ if SHOWPLOT:
 async def run():
     async with Traumschreiber(addr=TRAUMSCHREIBER_ADDR) as t:
         await t.start_listening(data_callback)
-        await async_sleep(1)
-        await t.set(a_on=1,b_on=1,color=(255,0,0), gain=GAIN)
-        await async_sleep(1)
-        await t.set(a_on=0,color=(0,255,0))
-        await async_sleep(1)
-        await t.set(a_on=1,b_on=0,color=(0,255,0))
-        await async_sleep(1)
-        await t.set(color=(255,255,0))
-        await async_sleep(1)
-        await t.set(b_on=1,color=(255,255,0))
-        await async_sleep(1)
-        await t.set(a_on=1,color=(125,125,0))
-        await async_sleep(1)
-        await t.set(a_on=0,b_on=0,color=(0,0,0))
-        await async_sleep(50)
+        # await async_sleep(1)
+        await t.set(gain=GAIN)
+        # await t.set(a_on=1,b_on=1,color=(255,0,0), gain=GAIN)
+        # await async_sleep(1)
+        # await t.set(a_on=0,color=(0,255,0))
+        # await async_sleep(1)
+        # await t.set(a_on=1,b_on=0,color=(0,255,0))
+        # await async_sleep(1)
+        # await t.set(color=(255,255,0))
+        # await async_sleep(1)
+        # await t.set(b_on=1,color=(255,255,0))
+        # await async_sleep(1)
+        # await t.set(a_on=1,color=(125,125,0))
+        # await async_sleep(1)
+        # await t.set(a_on=0,b_on=0,color=(0,0,0))
+        await async_sleep(5*50)
         if SHOWPLOT:
             plot()
 
