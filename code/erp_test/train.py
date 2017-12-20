@@ -15,7 +15,7 @@ data_store = []
 
 ########################################
 # ID of the traumschreiber you are using
-ID = 3
+ID = 4
 GAIN = 32
 ########################################
 
